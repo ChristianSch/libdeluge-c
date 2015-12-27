@@ -34,7 +34,7 @@ struct WriteMsg *encode_str(char* str)
     char *out;
     uint32_t len;
     int i = 0;
-    struct WriteMsg *ret = malloc(sizeof(struct WriteMsg));
+    struct WriteMsg *ret;
 
     uLong ucompSize = strlen(str) + 1;
     uLong compSize = compressBound(ucompSize);
@@ -42,12 +42,10 @@ struct WriteMsg *encode_str(char* str)
 
     /* printf("%lu/%lu/%lu len\n", ucompSize, compSize, targetSize); */
 
-    if (ret == NULL)
+    if ((ret = malloc(sizeof(struct WriteMsg))) == NULL)
         error("Ran out of memory.");
 
-    out = malloc(sizeof(char) * (compSize + 5));
-
-    if (out == NULL)
+    if ((out = malloc(sizeof(char) * (compSize + 5))) == NULL)
         error("Ran out of memory.");
 
     compress((Bytef *)out + 5, &compSize, (Bytef *)str, ucompSize);
@@ -70,9 +68,7 @@ struct WriteMsg *encode_str(char* str)
     */
 
     /* header is 5 bytes, no NUL */
-    ret->str = malloc(sizeof(char) * compSize + 5);
-
-    if (ret->str == NULL)
+    if ((ret->str = malloc(sizeof(char) * compSize + 5)) == NULL)
         error("Ran out of memory.");
 
     strncpy(ret->str, out, targetSize);
@@ -86,12 +82,12 @@ char *decode_str(char* str, int len)
     char *out;
     uLong ucompSize = strlen(str);
     uLong compSize = len;
-    out = malloc(sizeof(char) * len);
 
-    if (out == NULL)
+    if ((out = malloc(sizeof(char) * len)) == NULL)
         error("Ran out of memory.");
 
     uncompress((Bytef *)out, &ucompSize, (Bytef *)str, compSize);
+
     return out;
 }
 
@@ -134,9 +130,7 @@ int main(int argc, char** argv)
     ssl = SSL_new(ctx);
     assert(ssl != NULL);
 
-    bio = BIO_new_ssl_connect(ctx);
-
-    if (bio == NULL)
+    if ((bio = BIO_new_ssl_connect(ctx)) == NULL)
         error("Connection init error");
 
     BIO_get_ssl(bio, &ssl);
