@@ -38,14 +38,14 @@ struct WriteMsg *encode_str(char* str)
 
     uLong ucompSize = strlen(str) + 1;
     uLong compSize = compressBound(ucompSize);
-    uLong targetSize = compSize + 5;
+    uLong targetSize = compSize + 6;
 
-    /* printf("%lu/%lu/%lu len\n", ucompSize, compSize, targetSize); */
+    printf("%lu/%lu/%lu len\n", ucompSize, compSize, targetSize);
 
     if ((ret = malloc(sizeof(struct WriteMsg))) == NULL)
         error("Ran out of memory.");
 
-    if ((out = malloc(sizeof(char) * (compSize + 5))) == NULL)
+    if ((out = malloc(sizeof(char) * targetSize)) == NULL)
         error("Ran out of memory.");
 
     if (compress((Bytef *)out + 5, &compSize, (Bytef *)str, ucompSize) != Z_OK)
@@ -60,16 +60,16 @@ struct WriteMsg *encode_str(char* str)
     out[4] = (len >> 24);
 
     /* debug */
-    /*
+
     printf("out:\n");
     printf("[ ");
     for (i = 0; i < compSize; i++)
         printf("%d, ", out[i]);
     printf(" ]\n");
-    */
 
-    /* header is 5 bytes, no NUL */
-    if ((ret->str = malloc(sizeof(char) * compSize + 5)) == NULL)
+
+    /* header is 5 bytes */
+    if ((ret->str = malloc(sizeof(char) * targetSize)) == NULL)
         error("Ran out of memory.");
 
     strncpy(ret->str, out, targetSize);
