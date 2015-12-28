@@ -33,25 +33,22 @@ struct WriteMsg *encode_str(char* str)
 {
     char *out;
     uint32_t len;
-    int i = 0;
     struct WriteMsg *ret;
 
-    uLong ucompSize = strlen(str) + 1;
+    uLong ucompSize = strlen(str);
     uLong compSize = compressBound(ucompSize);
-    uLong targetSize = compSize + 6;
-
-    printf("%lu/%lu/%lu len\n", ucompSize, compSize, targetSize);
+	/* 5 bytes header + string */
+    uLong targetSize = compSize + 5;
 
     if ((ret = malloc(sizeof(struct WriteMsg))) == NULL)
-        error("Ran out of memory.");
+        error("Ran out of memory");
 
     if ((out = malloc(sizeof(char) * targetSize)) == NULL)
-        error("Ran out of memory.");
+        error("Ran out of memory");
 
-    if (compress((Bytef *)out + 5, &compSize, (Bytef *)str, ucompSize) != Z_OK)
-        error("Could not deflate message");
-
-    /* the header */
+	/* the header. 'D' is the first byte. the last 4 byte represent
+     * the emssage size *prior* to deflating.
+     */
     len = htonl(ucompSize);
     out[0] = 'D';
     out[1] = (len >> 0);
@@ -59,35 +56,36 @@ struct WriteMsg *encode_str(char* str)
     out[3] = (len >> 16);
     out[4] = (len >> 24);
 
-    /* debug */
+    if (compress((Bytef *)out + 5, &compSize, (Bytef *)str, ucompSize) != Z_OK)
+        error("Could not deflate message");
 
-    printf("out:\n");
-    printf("[ ");
-    for (i = 0; i < compSize; i++)
-        printf("%d, ", out[i]);
-    printf(" ]\n");
-
-
-    /* header is 5 bytes */
     if ((ret->str = malloc(sizeof(char) * targetSize)) == NULL)
-        error("Ran out of memory.");
+        error("Ran out of memory");
 
-    strncpy(ret->str, out, targetSize);
+	bzero(ret->str, targetSize);
+
+    memcpy(ret->str, out, targetSize);
     ret->len = targetSize;
 
     return ret;
 }
 
-char *decode_str(char* str, int len)
+char *decode_str(char* str, int n)
 {
+	uLong len;
     char *out;
-    uLong ucompSize = strlen(str);
-    uLong compSize = len;
 
-    if ((out = malloc(sizeof(char) * len)) == NULL)
+	/* check the header */
+	assert('D' == str[0]);
+
+	/* FIXME: make me portable; assuming network byte order here */
+	len = (str[1] << 24) | (str[2] << 16) | (str[3] << 8) | str[4];
+
+    if ((out = malloc(sizeof(char) * (len + 1))) == NULL)
         error("Ran out of memory.");
 
-    if (uncompress((Bytef *)out, &ucompSize, (Bytef *)str, compSize) != Z_OK)
+	bzero(out, len + 1);
+    if (uncompress((Bytef *)out, &len, (Bytef *)str + 5, n) != Z_OK)
         error("Could not inflate message");
 
     return out;
@@ -124,10 +122,10 @@ int main(int argc, char** argv)
      *  http://openssl.6102.n7.nabble.com/SSL-CTX-set-default-verify-paths-and-Windows-td25299.html
      *
      */
+	/*
     if (!SSL_CTX_load_verify_locations(ctx, "/usr/local/etc/openssl/cert.pem", NULL))
         error("Could not load trusted store");
-
-    /* encode_str("[[1,'info',[],{}]] "); */
+	*/
 
     /* init socket */
     portno = 58846;
@@ -167,16 +165,16 @@ int main(int argc, char** argv)
     bzero(buffer, 5000);
 
     /* authorize */
-    printf("%lu bytes to write\n", auth->len);
-    if ((n = SSL_write(ssl, &auth->str, auth->len)) < 0)
+    if ((n = SSL_write(ssl, auth->str, auth->len)) < 0)
         error("ERROR writing to socket");
 
+	SSL_write(ssl, "\0", 1);
     assert(n == auth->len);
 
     /* debug */
     printf("write done\n");
 
-    if ((n = SSL_read(ssl, buffer, 255)) < 0)
+    if ((n = SSL_read(ssl, buffer, 511)) < 0)
         error("ERROR reading");
 
     printf("%dB `%s`\n", n, buffer);
@@ -184,8 +182,9 @@ int main(int argc, char** argv)
 
     /* get torrent list */
     bzero(buffer, 5000);
-    if ((n = SSL_write(ssl, &get_torrents->str, get_torrents->len)) < 0)
+    if ((n = SSL_write(ssl, get_torrents->str, get_torrents->len)) < 0)
         error("ERROR writing");
+	SSL_write(ssl, 0, 1);
 
     assert(n == get_torrents->len);
 
