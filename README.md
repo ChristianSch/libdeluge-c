@@ -16,3 +16,10 @@ Some things to check out that could help:
 * [Another Ruby implementation](https://github.com/t3hk0d3/deluge-rpc)
 * [Lua auth bruteforce](https://svn.nmap.org/nmap-exp/claudiu/scripts/deluge-rpc-brute.nse)
 * [Forum entry about auth](http://webcache.googleusercontent.com/search?q=cache:0Y2PUFrK7LAJ:forum.deluge-torrent.org/viewtopic.php%3Ff%3D8%26t%3D47447&client=safari&hl=en&gl=de&strip=1&vwsrc=0)
+
+If no SSL is used, the deluged says:
+```
+Deluge client disconnected: [('SSL routines', 'SSL23_GET_CLIENT_HELLO', 'unknown protocol')]
+```
+
+which seems to indicate that we need it whatsoever.
