@@ -1,14 +1,14 @@
 # libdeluge-c
 C library for the deluge-daemon RPC api. Build with `make`.
 
+## Note
+The previous version of this readme contained a rant about deluge itself as well about
+its documentation and servers. I'm sorry for this, I didn't mean to offend anyone.
+
 ## Status
-Deluge sucks. Probably wont be finished, though my code could be helpful to someone.
-
-Biggest problem is that with openssl sockets we can't read anything as it just gets
-stuck reading and never stops. Without openssl the server returns empty answers.
-
-Sadly the deluge documentation sucks big time and the servers are kind of down so
-you'd have to rely on the google cache (yay).
+Currently just fiddling around. The deluge rpc protocol seems to be changing soon which
+introduces a header for message size (which is a good thing though).
+I am unsure whether or not this project will be maintained in the future.
 
 ## Hints
 Some things to check out that could help:
